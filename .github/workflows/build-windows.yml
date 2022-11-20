@@ -59,7 +59,7 @@ jobs:
           mkdir -p "${DIST_SOURCE}"
 
           cp -R build/Release/*.exe "${DIST_SOURCE}"
-          cp LICENSE README.md "${DIST_SOURCE}"
+          cp LICENSE CHANGELOG.md README.md "${DIST_SOURCE}"
 
       - name: "🚀 Upload artifact"
         uses: actions/upload-artifact@v3

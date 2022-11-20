@@ -45,7 +45,7 @@ jobs:
           mkdir -p "${DIST_SOURCE}"
 
           cp build/keyless-migu3d "${DIST_SOURCE}"
-          cp LICENSE README.md "${DIST_SOURCE}"
+          cp LICENSE CHANGELOG.md README.md "${DIST_SOURCE}"
 
           cd dist
           tar zcvf ../keyless-migu3d-linux-amd64.tar.gz keyless-migu3d-linux-amd64
