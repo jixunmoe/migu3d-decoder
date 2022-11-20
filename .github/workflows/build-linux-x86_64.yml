@@ -1,0 +1,68 @@
+name: Build (Linux x86_64)
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  pull_request:
+  schedule:
+    # Build once every fortnight
+    - cron: "10 4 1,15 * *"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: "Build Linux Binary"
+
+    runs-on: ubuntu-22.04
+    env:
+      CC: gcc-11
+      CXX: g++-11
+
+    steps:
+      - name: "⏳ Clone repo..."
+        uses: actions/checkout@v3
+
+      - name: "🖼️ Setup scene..."
+        run: mkdir -p build
+
+      - name: "🔧 CMake: Configure"
+        working-directory: build
+        run: cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release ..
+
+      - name: "🛠️ CMake: Build"
+        working-directory: build
+        run: cmake --build . --config Release -j
+
+      - name: "📦 Packaging"
+        shell: bash
+        run: |
+          DIST_SOURCE="dist/keyless-migu3d-linux-amd64/"
+          mkdir -p "${DIST_SOURCE}"
+
+          cp build/keyless-migu3d "${DIST_SOURCE}"
+          cp LICENSE README.md "${DIST_SOURCE}"
+
+          cd dist
+          tar zcvf ../keyless-migu3d-linux-amd64.tar.gz keyless-migu3d-linux-amd64
+
+      - name: "🚀 Upload artifact"
+        uses: actions/upload-artifact@v3
+        with:
+          name: keyless-migu3d-linux-amd64
+          path: dist/
+
+      - name: 📝 Draft Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          body: "<to be filled>"
+          draft: true
+          token: ${{ secrets.CUSTOM_GITHUB_TOKEN }}
+          files: "*.tar.gz"

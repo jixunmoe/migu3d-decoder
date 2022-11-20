@@ -1,0 +1,8 @@
+x64/
+build/
+build-*/
+.vs/
+*.user
+*.mg3d
+*.wav
+launch.json
