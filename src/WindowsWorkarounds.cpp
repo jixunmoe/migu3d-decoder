@@ -1,5 +1,3 @@
-#pragma once
-
 #include <optional>
 #include <string>
 #include <vector>
@@ -13,7 +11,13 @@
 
 namespace Migu3D {
 
-std::optional<std::vector<std::wstring>> GetWindowsArgs() {
+void WindowsConsoleInit() {
+#if _MSC_VER
+  SetConsoleOutputCP(CP_UTF8);
+#endif
+}
+
+std::optional<std::vector<std::wstring>> GetWindowsUTF16Arguments() {
 #if _MSC_VER
   std::vector<std::wstring> result;
   int nArgs;

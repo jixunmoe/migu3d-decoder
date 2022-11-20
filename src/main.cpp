@@ -1,6 +1,6 @@
 #include "migu/MiguDecoder.h"
 #include "migu/WavValidator.h"
-#include "migu/WinArgHelper.h"
+#include "migu/WindowsWorkarounds.h"
 #include "migu/constants.h"
 
 #include "migu/config.h"
@@ -16,6 +16,9 @@
 namespace fs = std::filesystem;
 
 int main(int argc, char* argv[]) {
+  Migu3D::WindowsConsoleInit();
+  auto utf16_args = Migu3D::GetWindowsUTF16Arguments();
+
   std::cerr << "Migu3D Decoder Demo (v" MIGU3D_VERSION ") by Jixun" << std::endl << std::endl;
 
   if (argc < 2) {
@@ -25,7 +28,6 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  auto utf16_args = Migu3D::GetWindowsArgs();
   fs::path input_file_path(argv[1]);
   fs::path output_file_path;
   if (utf16_args.has_value()) {
@@ -43,8 +45,8 @@ int main(int argc, char* argv[]) {
     name += u8"_(Migu3D).wav";
     output_file_path.replace_filename(name);
   }
-  std::cerr << "  INFO:  input = " << input_file_path.string() << std::endl;
-  std::cerr << "  INFO: output = " << output_file_path.string() << std::endl;
+  std::cerr << "  INFO:  input = " << (const char*)input_file_path.generic_u8string().c_str() << std::endl;
+  std::cerr << "  INFO: output = " << (const char*)output_file_path.generic_u8string().c_str() << std::endl;
 
   std::array<uint8_t, Migu3D::kDecryptionSegmentSize> buffer = {0};
   auto p_buffer = reinterpret_cast<char*>(buffer.data());

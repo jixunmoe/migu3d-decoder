@@ -6,6 +6,7 @@
 
 namespace Migu3D {
 
-std::optional<std::vector<std::wstring>> GetWindowsArgs();
+void WindowsConsoleInit();
+std::optional<std::vector<std::wstring>> GetWindowsUTF16Arguments();
 
 }  // namespace Migu3D
