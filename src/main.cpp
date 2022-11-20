@@ -50,10 +50,12 @@ int main(int argc, char* argv[]) {
   auto p_buffer = reinterpret_cast<char*>(buffer.data());
 
   std::ifstream input_file(input_file_path, std::ios::in | std::ios::binary);
-  std::size_t bytes_read = static_cast<std::size_t>(input_file.readsome(p_buffer, Migu3D::kDecryptionSegmentSize));
+  input_file.read(p_buffer, Migu3D::kDecryptionSegmentSize);
+  std::size_t bytes_read = static_cast<std::size_t>(input_file.gcount());
   if (bytes_read != Migu3D::kDecryptionSegmentSize) {
     std::cerr << " FATAL: file too small or read error. read " << bytes_read << " bytes, expecting "
               << Migu3D::kDecryptionSegmentSize << " bytes." << std::endl;
+    return 2;
   }
 
   std::vector<std::shared_ptr<Migu3D::ValidatorBase>> validators;
@@ -78,7 +80,8 @@ int main(int argc, char* argv[]) {
     Migu3D::DecryptSegment(buffer, p_key, bytes_processed);
     output.write(p_buffer, bytes_read);
     bytes_processed += bytes_read;
-    bytes_read = static_cast<std::size_t>(input_file.readsome(p_buffer, Migu3D::kDecryptionSegmentSize));
+    input_file.read(p_buffer, Migu3D::kDecryptionSegmentSize);
+    bytes_read = static_cast<std::size_t>(input_file.gcount());
   }
   std::cerr << "  INFO: Done!" << std::endl;
 
