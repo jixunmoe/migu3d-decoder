@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.12 FATAL_ERROR)
-project(keyless-migu3d VERSION 0.1 LANGUAGES CXX)
+project(keyless-migu3d VERSION 0.1.1 LANGUAGES CXX)
 
 file(GLOB_RECURSE SOURCES src/**.cpp)
 configure_file(
