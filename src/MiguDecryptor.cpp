@@ -1,5 +1,4 @@
 #include "migu/MiguDecoder.h"
-#include "migu/ValidationHelper.h"
 #include "migu/constants.h"
 
 #include <algorithm>
@@ -8,49 +7,67 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <map>
+#include <array>
 
 #include <cassert>
 
 namespace Migu3D {
 
-void DecryptSegment(std::span<uint8_t> buffer, const std::span<const uint8_t, kMiguKeySize> key, std::size_t i) {
+void DecryptSegment(std::span<uint8_t> buffer, const std::span<const uint8_t> key, std::size_t i) {
   for (auto& byte : buffer) {
-    byte -= key[i % key.size()];
+    byte -= key[i % 32];
     i++;
   }
 }
 
-std::set<std::string> SearchKeys(const std::span<const uint8_t>& header,
-                                 const std::span<std::shared_ptr<ValidatorBase>> validators) {
-  std::vector<uint8_t> decrypted_header;
-  std::set<std::string> result;
+bool isUpperHexChar(uint8_t c) {
+  return (c >= '0' && c <= '9') || (c >= 'A' && c <= 'F');
+}
 
-  std::array<uint8_t, kMiguKeySize> possible_key;
-  std::string possible_key_str;
-  for (auto i = kMiguKeySize; i <= header.size() - 32; i += kMiguKeySize) {
-    std::copy(&header[i], &header[i + kMiguKeySize], possible_key.begin());
-    if (!std::ranges::all_of(possible_key.begin(), possible_key.end(), IsUpperHexChar)) {
-      continue;
+std::vector<uint8_t> SearchByFreqAnalysis(const std::span<const uint8_t>& header) {
+  std::vector<uint8_t> result;
+  std::array<std::map<uint8_t, size_t>, 32> freq;
+
+  size_t offset = 0;
+  for (auto it = header.begin(); it < header.end(); it++, offset = (offset + 1) % 32) {
+    auto v = *it;
+    if (isUpperHexChar(v)) {
+      auto &charFreq = freq[offset];
+      if (charFreq.find(v) == charFreq.end()) {
+        charFreq[v] = 1;
+      } else {
+        charFreq[v] += 1;
+      }
     }
+  }
 
-    possible_key_str.assign(possible_key.begin(), possible_key.end());
-#if NDEBUG
-    if (result.find(possible_key_str) != result.end()) {
-      continue;
-    }
-#endif
-
-    decrypted_header.assign(header.begin(), header.end());
-    DecryptSegment(decrypted_header, possible_key, 0);
-
-    if (std::ranges::any_of(validators.begin(), validators.end(), [&decrypted_header](const auto& validator) -> bool {
-          return validator->ValidateFileHeader(decrypted_header);
-        })) {
 #if !NDEBUG
-      std::cerr << " DEBUG: found a possible key at offset " << std::setw(4) << std::hex << i << std::endl;
+  std::cerr << " DEBUG: offset, key, freq count" << std::endl;
 #endif
-      result.emplace(possible_key_str);
+
+  int idx = 0;
+  for (auto& charFreq : freq) {
+#if !NDEBUG
+    std::cerr << " DEBUG:   0x" << std::hex << std::setw(2) << std::setfill('0') << idx << ", ";
+#endif
+    auto max_item = std::max_element(charFreq.cbegin(), charFreq.cend(),
+                     [](const auto& a, const auto& b) { return a.second < b.second; });
+
+    auto key = (max_item == charFreq.end()) ? (uint8_t)'?' : max_item->first;
+#if !NDEBUG
+    std::cerr << "'" << key << "', ";
+#endif
+    result.push_back(key);
+
+
+#if !NDEBUG
+    for (auto& [chr, count] : charFreq) {
+      std::cerr << (char)chr << "(" << std::dec << std::setw(2) << std::setfill(' ') << (int)count << ") ";
     }
+    std::cerr << std::endl;
+#endif
+    idx++;
   }
 
   return result;

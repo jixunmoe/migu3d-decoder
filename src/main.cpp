@@ -1,5 +1,4 @@
 #include "migu/MiguDecoder.h"
-#include "migu/WavValidator.h"
 #include "migu/WindowsWorkarounds.h"
 #include "migu/constants.h"
 
@@ -60,26 +59,18 @@ int main(int argc, char* argv[]) {
     return 2;
   }
 
-  std::vector<std::shared_ptr<Migu3D::ValidatorBase>> validators;
-  validators.emplace_back(std::make_shared<Migu3D::WavValidator>());
-
-  auto keys = Migu3D::SearchKeys(buffer, validators);
-  if (keys.size() == 0) {
-    std::cerr << " FATAL: did not find a key." << std::endl;
-    return 3;
-  } else if (keys.size() > 1) {
-    std::cerr << "  WARN: " << keys.size() << " keys found, using the first one." << std::endl;
+  auto key = Migu3D::SearchByFreqAnalysis(buffer);
+  auto key_as_str = std::string(key.begin(), key.end());
+  if (key_as_str.find('?') != std::string::npos) {
+    std::cerr << " ERROR: key not found (Invalid key: '" << key_as_str << "')" << std::endl;
+    return 1;
   }
-
-  auto key = *keys.begin();
-  auto p_key = std::span<const uint8_t, Migu3D::kMiguKeySize>{reinterpret_cast<const uint8_t*>(key.data()),
-                                                              Migu3D::kMiguKeySize};
-  std::cerr << "  INFO: decrypting with final key '" << key << "'..." << std::endl;
+  std::cerr << "  INFO: decrypting with final key '" << key_as_str << "'..." << std::endl;
 
   std::size_t bytes_processed = 0;
   std::ofstream output(output_file_path, std::ios::out | std::ios::binary);
   while (bytes_read > 0) {
-    Migu3D::DecryptSegment(buffer, p_key, bytes_processed);
+    Migu3D::DecryptSegment(buffer, key, bytes_processed);
     output.write(p_buffer, bytes_read);
     bytes_processed += bytes_read;
     input_file.read(p_buffer, Migu3D::kDecryptionSegmentSize);
